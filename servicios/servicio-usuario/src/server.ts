@@ -17,7 +17,7 @@ app.use(express.json()); // El que lee los body en JSON
 
 // Endpoint raiz: sirve como prueba visible del despliegue (CI/CD).
 app.get('/', (_req, res) => {
-    res.json({ mensaje: 'Hola mundo - BebrasBolivia servicio de usuarios desplegado' });
+    res.json({ mensaje: 'Hola mundo - despliegue automatico via CI/CD funcionando!' });
 });
 
 // Endpoint de salud para el healthcheck del contenedor y monitoreo.
