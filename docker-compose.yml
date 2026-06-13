@@ -1,47 +1,47 @@
-version: '3.8'
-
 services:
-  # BASE DE DATOS
+  # ----------------------------------------------------------------------------
+  # BASE DE DATOS PostgreSQL (local, en contenedor)
+  # Las credenciales se inyectan desde el archivo .env que genera deploy.sh.
+  # ----------------------------------------------------------------------------
   postgres_db:
     image: postgres:15-alpine
     container_name: bebras_db
     restart: always
     environment:
-      # Estos 3 los define: MODELO BD Y REPOS
-      POSTGRES_USER: dev_user           
-      POSTGRES_PASSWORD: dev_password   
-      POSTGRES_DB: bebras_bolivia       
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  # SECCIÓN DE APLICACIÓN
-  auth-service:
+  # ----------------------------------------------------------------------------
+  # SERVICIO DE USUARIO (Express + Prisma) - puerto 4102
+  # Aplica migraciones de Prisma al arrancar (ver docker-entrypoint.sh).
+  # ----------------------------------------------------------------------------
+  user-service:
     build:
-      context: .
-      # Define la ruta: MODELO BD Y REPOS
-      dockerfile: servicios/servicio-autenticacion/Dockerfile 
-    container_name: auth_svc
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
+      context: ./servicios/servicio-usuario
+      dockerfile: Dockerfile
+    container_name: bebras_user_service
+    restart: always
     environment:
-      - NODE_ENV=development            # ESTÁNDARES DE CODIFICACIÓN
-      
-      # 1. Los datos (user/pass) vienen de: MODELO BD Y REPOS
-      # 2. La seguridad de la conexión viene de: DDOS, TLS, INYECCION
-      - DB_URL=postgres://dev_user:dev_password@postgres_db:5432/bebras_bolivia
-      
-      # CERTIFICADOS Y FIRMAS DIGITALES
-
+      NODE_ENV: production
+      USER_SERVICE_PORT: 4102
+      # El schema "bebras" del proyecto se pasa en la cadena de conexion.
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres_db:5432/${DB_NAME}?schema=bebras
     ports:
-      - "3001:3001"
+      - "4102:4102"
     depends_on:
-      - postgres_db
+      postgres_db:
+        condition: service_healthy
 
-# RECURSOS ADICIONALES
 volumes:
   postgres_data:
-
-# REDIS
+    driver: local

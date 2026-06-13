@@ -1,0 +1,26 @@
+name: CD - Despliegue Continuo
+
+# Este workflow contiene SOLO la fase de despliegue (CD).
+# La fase de Integracion Continua (CI) la maneja el workflow "CI" (ci.yml),
+# que NO se modifica. El despliegue se dispara automaticamente cuando el
+# workflow "CI" termina con exito sobre la rama main.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  cd-deploy:
+    # Solo desplegar si el workflow de CI concluyo exitosamente.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted # Se ejecuta en el runner local instalado en la VM Ubuntu
+    steps:
+      - name: Descargar el codigo fuente actualizado en el servidor local
+        uses: actions/checkout@v4
+
+      - name: Invocar el script de despliegue local e inyectar variables secretas
+        run: |
+          ~/deploy.sh "${{ secrets.DB_USER }}" "${{ secrets.DB_PASSWORD }}" "${{ secrets.DB_NAME }}"

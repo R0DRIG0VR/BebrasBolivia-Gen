@@ -15,6 +15,16 @@ app.use(cors({
 
 app.use(express.json()); // El que lee los body en JSON
 
+// Endpoint raiz: sirve como prueba visible del despliegue (CI/CD).
+app.get('/', (_req, res) => {
+    res.json({ mensaje: 'Hola mundo - BebrasBolivia servicio de usuarios desplegado' });
+});
+
+// Endpoint de salud para el healthcheck del contenedor y monitoreo.
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok' });
+});
+
 // ... aquí cargas tus rutas ...
 app.use('/api/v1/roles', rutasRol);
 app.use('/api/v1/usuarios', rutasUsuario);
